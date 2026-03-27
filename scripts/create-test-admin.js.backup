@@ -1,0 +1,84 @@
+// scripts/create-test-admin.js
+// Run this to create a test admin user
+
+const { PrismaClient } = require('@prisma/client');
+const bcrypt = require('bcryptjs');
+
+const prisma = new PrismaClient();
+
+async function createTestAdmin() {
+  try {
+    // Hash the password
+    const password = 'password123';
+    console.log('🔒 Hashing password with bcrypt (10 rounds)...');
+    const passwordHash = await bcrypt.hash(password, 10);
+    console.log('Generated hash:', passwordHash);
+
+    // Verify the hash works before saving
+    console.log('\n✅ Verifying hash matches password...');
+    const hashMatches = await bcrypt.compare(password, passwordHash);
+    if (!hashMatches) {
+      console.error('❌ ERROR: Hash verification failed!');
+      return;
+    }
+    console.log('✅ Hash verification passed!');
+
+    // Create admin
+    const admin = await prisma.admin.create({
+      data: {
+        email: 'admin@test.com',
+        passwordHash: passwordHash,
+        role: 'super_admin',
+        isActive: true,
+      },
+    });
+
+    console.log('\n✅ Test admin created successfully!');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('Email:', admin.email);
+    console.log('Password: password123');
+    console.log('Role:', admin.role);
+    console.log('Active:', admin.isActive);
+    console.log('Admin ID:', admin.adminId);
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  } catch (error) {
+    if (error.code === 'P2002') {
+      console.log('⚠️  Admin already exists. Updating password...');
+      
+      // Update existing admin
+      const password = 'password123';
+      console.log('🔒 Hashing password with bcrypt (10 rounds)...');
+      const passwordHash = await bcrypt.hash(password, 10);
+      console.log('Generated hash:', passwordHash);
+
+      // Verify the hash works before saving
+      console.log('\n✅ Verifying hash matches password...');
+      const hashMatches = await bcrypt.compare(password, passwordHash);
+      if (!hashMatches) {
+        console.error('❌ ERROR: Hash verification failed!');
+        return;
+      }
+      console.log('✅ Hash verification passed!');
+      
+      const updatedAdmin = await prisma.admin.update({
+        where: { email: 'admin@test.com' },
+        data: { passwordHash: passwordHash, isActive: true },
+      });
+      
+      console.log('\n✅ Password updated!');
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('Email:', updatedAdmin.email);
+      console.log('Password: password123');
+      console.log('Role:', updatedAdmin.role);
+      console.log('Active:', updatedAdmin.isActive);
+      console.log('Admin ID:', updatedAdmin.adminId);
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    } else {
+      console.error('Error creating admin:', error);
+    }
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+createTestAdmin();

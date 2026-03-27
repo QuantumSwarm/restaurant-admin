@@ -1,0 +1,384 @@
+// app/api/transcriptions/sync/route.ts
+// Fetch transcriptions from ElevenLabs API and sync to database
+// FIXED VERSION - Correct authentication, pagination, and field mapping
+
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/db/prisma';
+import { verifyToken } from '@/lib/auth/jwt';
+
+const ELEVENLABS_API_URL = process.env.ELEVENLABS_API_URL || 'https://api.elevenlabs.io/v1';
+const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
+const MAX_DATE_RANGE_DAYS = 90; // 90 day limit
+const PAGE_SIZE = 50; // Fetch 50 records per page
+
+interface ConversationListItem {
+  conversation_id: string;
+  agent_id: string;
+  agent_name?: string;
+  start_time_unix_secs?: number;
+  call_duration_secs?: number;
+  message_count?: number;
+  status?: string;
+  call_successful?: string;
+  call_summary_title?: string;
+}
+
+interface TranscriptTurn {
+  role: 'agent' | 'user';
+  message: string | null;
+  time_in_call_secs?: number;
+}
+
+interface ConversationDetail {
+  conversation_id: string;
+  agent_id: string;
+  status?: string;
+  transcript?: TranscriptTurn[];
+  metadata?: {
+    start_time_unix_secs?: number;
+    call_duration_secs?: number;
+  };
+  analysis?: {
+    transcript_summary?: string;
+    call_summary_title?: string;
+  };
+}
+
+interface ConversationListResponse {
+  conversations: ConversationListItem[];
+  next_cursor?: string | null;
+  has_more?: boolean;
+}
+
+interface ElevenLabsHistoryItem {
+  history_item_id: string;
+  voice_id: string | null;
+  text: string | null;
+  date_unix: number;
+  character_count_change_from: number;
+  character_count_change_to: number;
+  content_type: string;
+  state: string;
+  dialogue?: Array<{
+    text: string;
+    voice_id?: string;
+    voice_name?: string;
+  }>;
+}
+
+interface ElevenLabsResponse {
+  conversations?: ElevenLabsHistoryItem[]; // convai/conversations endpoint
+  history?: ElevenLabsHistoryItem[]; // fallback for history endpoint
+  last_history_item_id?: string;
+  has_more?: boolean;
+  next_cursor?: string | null;
+}
+
+// Convert YYYY-MM-DD to Unix timestamp (seconds)
+function dateToUnix(dateStr: string): number {
+  return Math.floor(new Date(dateStr).getTime() / 1000);
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    // Get token from cookie
+    const token = request.cookies.get('token')?.value;
+
+    if (!token) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    // Verify token
+    const decoded = verifyToken(token);
+    if (!decoded) {
+      return NextResponse.json(
+        { error: 'Invalid or expired token' },
+        { status: 401 }
+      );
+    }
+
+    // Get request parameters
+    const body = await request.json();
+    const { storeId, startDate, endDate } = body;
+
+    if (!storeId || !startDate || !endDate) {
+      return NextResponse.json(
+        { error: 'Missing required parameters: storeId, startDate, endDate' },
+        { status: 400 }
+      );
+    }
+
+    // Validate date range (max 90 days)
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const daysDiff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (daysDiff > MAX_DATE_RANGE_DAYS) {
+      return NextResponse.json(
+        { error: `Date range cannot exceed ${MAX_DATE_RANGE_DAYS} days` },
+        { status: 400 }
+      );
+    }
+
+    // Verify user has access to this store
+    const storeQuery = await prisma.$queryRawUnsafe<any[]>(`
+      SELECT s.store_id, s.ai_agent_id, r.admin_id
+      FROM store s
+      JOIN restaurant r ON s.restaurant_id = r.restaurant_id
+      WHERE s.store_id = $1
+    `, storeId);
+
+    if (storeQuery.length === 0) {
+      return NextResponse.json(
+        { error: 'Store not found' },
+        { status: 404 }
+      );
+    }
+
+    const store = storeQuery[0];
+
+    // Check permission
+    if (decoded.role !== 'super_admin' && store.admin_id !== decoded.adminId) {
+      return NextResponse.json(
+        { error: 'Permission denied' },
+        { status: 403 }
+      );
+    }
+
+    // Check if agent_id is configured for this store
+    if (!store.ai_agent_id) {
+      return NextResponse.json(
+        { error: 'AI agent ID not configured for this store' },
+        { status: 400 }
+      );
+    }
+
+    // Check if API key is configured
+    if (!ELEVENLABS_API_KEY) {
+      return NextResponse.json(
+        { error: 'ElevenLabs API key not configured' },
+        { status: 500 }
+      );
+    }
+
+    // Convert dates to Unix timestamps
+    const startUnix = dateToUnix(startDate);
+    const endUnix = dateToUnix(endDate);
+
+    console.log(`[ElevenLabs] Step 1: Fetching conversation list for agent ${store.ai_agent_id}`);
+    console.log(`[ElevenLabs] Date range: ${startDate} to ${endDate} (Unix: ${startUnix} - ${endUnix})`);
+
+    // STEP 1: Fetch list of conversation IDs
+    let allConversationIds: string[] = [];
+    let cursor: string | null = null;
+    let pageCount = 0;
+
+    do {
+      // Build URL with parameters for listing conversations
+      const params = new URLSearchParams({
+        agent_id: store.ai_agent_id,
+        call_start_after_unix: startUnix.toString(),
+        call_start_before_unix: endUnix.toString(),
+        page_size: PAGE_SIZE.toString(),
+      });
+
+      if (cursor) {
+        params.append('cursor', cursor);
+      }
+
+      const listUrl = `${ELEVENLABS_API_URL}/convai/conversations?${params}`;
+
+      console.log(`[ElevenLabs] Fetching conversation list page ${pageCount + 1}...`);
+
+      // Fetch conversation list
+      const response = await fetch(listUrl, {
+        method: 'GET',
+        headers: {
+          'xi-api-key': ELEVENLABS_API_KEY,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[ElevenLabs] API error:', errorText);
+        return NextResponse.json(
+          { error: `ElevenLabs API error: ${response.status} ${response.statusText}` },
+          { status: response.status }
+        );
+      }
+
+      const data: ConversationListResponse = await response.json();
+      
+      // Extract conversation IDs
+      if (data.conversations && data.conversations.length > 0) {
+        const ids = data.conversations.map(c => c.conversation_id);
+        allConversationIds.push(...ids);
+        console.log(`[ElevenLabs] Page ${pageCount + 1}: Found ${ids.length} conversations`);
+        
+        // DEBUG: Log first conversation structure
+        if (pageCount === 0) {
+          console.log('[DEBUG] First conversation item:', JSON.stringify(data.conversations[0], null, 2));
+        }
+      }
+
+      // Update cursor for next page
+      cursor = data.next_cursor || null;
+      pageCount++;
+
+      // Safety limit (prevent infinite loops)
+      if (pageCount > 100) {
+        console.warn('[ElevenLabs] Safety limit reached (100 pages)');
+        break;
+      }
+
+    } while (cursor);
+
+    console.log(`[ElevenLabs] Step 1 Complete: Found ${allConversationIds.length} conversation IDs`);
+
+    // STEP 2: Fetch details for each conversation
+    console.log(`[ElevenLabs] Step 2: Fetching transcript details...`);
+
+    let syncedCount = 0;
+    let errorCount = 0;
+    let skippedCount = 0;
+
+    for (let i = 0; i < allConversationIds.length; i++) {
+      const conversationId = allConversationIds[i];
+      
+      try {
+        // Fetch conversation details
+        const detailUrl = `${ELEVENLABS_API_URL}/convai/conversations/${conversationId}`;
+        
+        const detailResponse = await fetch(detailUrl, {
+          method: 'GET',
+          headers: {
+            'xi-api-key': ELEVENLABS_API_KEY,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!detailResponse.ok) {
+          console.error(`[ElevenLabs] Failed to fetch conversation ${conversationId}: ${detailResponse.status}`);
+          errorCount++;
+          continue;
+        }
+
+        const conversation: ConversationDetail = await detailResponse.json();
+        
+        // DEBUG: Log first conversation detail
+        if (i === 0) {
+          console.log('[DEBUG] First conversation detail:', JSON.stringify(conversation, null, 2));
+        }
+
+        // Extract transcript - it's an array of {role, message} turns, NOT a string!
+        const transcriptTurns = conversation.transcript || [];
+        
+        // Build readable transcript: "Agent: ...\nUser: ...\n"
+        const transcriptText = transcriptTurns
+          .filter((turn: TranscriptTurn) => turn.message && turn.message.trim() !== '')
+          .map((turn: TranscriptTurn) => {
+            const speaker = turn.role === 'agent' ? 'Agent' : 'Customer';
+            return `${speaker}: ${turn.message}`;
+          })
+          .join('\n');
+        
+        if (!transcriptText || transcriptText.trim() === '') {
+          skippedCount++;
+          if (skippedCount <= 3) {
+            console.log(`[DEBUG] Skipped conversation ${conversationId} - no transcript messages`);
+          }
+          continue;
+        }
+
+        // Calculate word count
+        const wordCount = transcriptText.trim().split(/\s+/).length;
+
+        // Get timestamp from metadata
+        const startTimeSecs = conversation.metadata?.start_time_unix_secs;
+        const createdAt = startTimeSecs
+          ? new Date(startTimeSecs * 1000).toISOString()
+          : new Date().toISOString();
+
+        // Get duration from metadata
+        const durationSeconds = conversation.metadata?.call_duration_secs || null;
+
+        // Upsert transcription to database
+        await prisma.$executeRawUnsafe(`
+          INSERT INTO transcriptions (
+            store_id,
+            conversation_id,
+            session_id,
+            transcript_text,
+            duration_seconds,
+            word_count,
+            created_at,
+            metadata
+          ) VALUES (
+            $1, $2, $3, $4, $5, $6, $7::timestamp, $8::jsonb
+          )
+          ON CONFLICT (store_id, conversation_id)
+          DO UPDATE SET
+            transcript_text = EXCLUDED.transcript_text,
+            duration_seconds = EXCLUDED.duration_seconds,
+            word_count = EXCLUDED.word_count,
+            metadata = EXCLUDED.metadata,
+            updated_at = NOW()
+        `,
+          storeId,
+          conversationId,
+          conversation.agent_id || null,
+          transcriptText,
+          durationSeconds,
+          wordCount,
+          createdAt,
+          JSON.stringify({
+            call_summary_title: conversation.analysis?.call_summary_title || null,
+            transcript_summary: conversation.analysis?.transcript_summary || null,
+            status: conversation.status,
+            agent_id: conversation.agent_id,
+          })
+        );
+
+        syncedCount++;
+        
+        // Log progress every 10 conversations
+        if ((i + 1) % 10 === 0) {
+          console.log(`[ElevenLabs] Progress: ${i + 1}/${allConversationIds.length} conversations processed`);
+        }
+
+      } catch (error) {
+        console.error(`[ElevenLabs] Error processing conversation ${conversationId}:`, error);
+        errorCount++;
+      }
+    }
+
+    console.log(`[Sync] Complete: ${syncedCount} synced, ${errorCount} errors, ${skippedCount} skipped`);
+    
+    if (syncedCount > 0) {
+      console.log(`[Sync] Successfully saved ${syncedCount} transcriptions to database`);
+    }
+    if (skippedCount > 0) {
+      console.log(`[Sync] Skipped ${skippedCount} conversations (no transcript text found)`);
+    }
+
+    return NextResponse.json({
+      success: true,
+      synced: syncedCount,
+      errors: errorCount,
+      skipped: skippedCount,
+      total: allConversationIds.length,
+      conversations_found: allConversationIds.length,
+    });
+
+  } catch (error) {
+    console.error('[Sync] Error:', error);
+    return NextResponse.json(
+      { error: 'Failed to sync transcriptions' },
+      { status: 500 }
+    );
+  }
+}

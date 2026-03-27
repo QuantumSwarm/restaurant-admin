@@ -1,0 +1,8 @@
+Changes to schema:
+- added transcription 
+- added overage_charges 
+- added credit_usage_log  
+- alter store 
+- alter admin
+- alter admin_subscriptions 
+

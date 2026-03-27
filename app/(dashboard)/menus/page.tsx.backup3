@@ -1,0 +1,527 @@
+"use client";
+
+// app/(dashboard)/menus/page.tsx
+// UPDATED: Menus page with Store Selector and store-specific data
+
+import React, { useState, useEffect } from "react";
+import {
+  Table,
+  Button,
+  Input,
+  Space,
+  Tag,
+  Popconfirm,
+  message,
+  Typography,
+  Card,
+  Select,
+  Alert,
+  Tooltip,
+} from "antd";
+import {
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  SearchOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  ShopOutlined,
+  DollarOutlined,
+  InfoCircleOutlined,
+} from "@ant-design/icons";
+import type { ColumnsType } from "antd/es/table";
+import MenuModal from "@/components/menus/MenuModal";
+
+const { Title, Text } = Typography;
+const { Search } = Input;
+
+interface Store {
+  storeId: number;
+  restaurantId: number;
+  restaurantName: string;
+  locationName: string;
+  displayName: string;
+  address: string;
+  isActive: boolean;
+}
+
+interface MenuItem {
+  templateId: number;
+  name: string;
+  description: string | null;
+  categoryId: number | null;
+  basePrice: number;
+  imageUrl: string | null;
+  calories: number | null;
+  isActive: boolean;
+  restaurant: {
+    restaurantId: number;
+    name: string;
+  };
+  category?: {
+    categoryId: number;
+    name: string;
+  } | null;
+  // Store-specific fields
+  isAssignedToStore: boolean;
+  isAvailableAtStore: boolean;
+  displayOrder: number;
+  overriddenPrice: number | null;
+  effectivePrice: number;
+  assignmentId: number | null;
+}
+
+interface Category {
+  categoryId: number;
+  name: string;
+}
+
+export default function MenusPage() {
+  const [stores, setStores] = useState<Store[]>([]);
+  const [selectedStore, setSelectedStore] = useState<number | null>(null);
+  const [menus, setMenus] = useState<MenuItem[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchText, setSearchText] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<string>("");
+  const [messageApi, contextHolder] = message.useMessage();
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalMode, setModalMode] = useState<"create" | "edit">("create");
+  const [selectedMenu, setSelectedMenu] = useState<MenuItem | undefined>();
+
+  // Fetch stores for dropdown
+  const fetchStores = async () => {
+    try {
+      const response = await fetch("/api/stores");
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setStores(data.stores);
+        // Auto-select first store if available
+        if (data.stores.length > 0 && !selectedStore) {
+          setSelectedStore(data.stores[0].storeId);
+        }
+      } else {
+        messageApi.error(data.error || "Failed to fetch stores");
+      }
+    } catch (error) {
+      console.error("Fetch stores error:", error);
+      messageApi.error("An error occurred while fetching stores");
+    }
+  };
+
+  // Fetch categories
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch("/api/categories");
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setCategories(data.categories);
+      }
+    } catch (error) {
+      console.error("Fetch categories error:", error);
+    }
+  };
+
+  // Fetch menus
+  const fetchMenus = async (search = "", category = "", storeId: number | null = selectedStore) => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (search) params.append("search", search);
+      if (category) params.append("category", category);
+      if (storeId) params.append("storeId", storeId.toString());
+
+      const url = `/api/menus${params.toString() ? `?${params.toString()}` : ""}`;
+
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setMenus(data.menus);
+        setCategories(data.categories || []);
+      } else {
+        messageApi.error(data.error || "Failed to fetch menu items");
+      }
+    } catch (error) {
+      console.error("Fetch menus error:", error);
+      messageApi.error("An error occurred while fetching menu items");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load stores, categories, and menus on mount
+  useEffect(() => {
+    fetchStores();
+    fetchCategories();
+  }, []);
+
+  // Fetch menus when store selection changes
+  useEffect(() => {
+    if (selectedStore !== null) {
+      fetchMenus(searchText, categoryFilter, selectedStore);
+    }
+  }, [selectedStore]);
+
+  // Handle store selection
+  const handleStoreChange = (storeId: number) => {
+    setSelectedStore(storeId);
+  };
+
+  // Handle search
+  const handleSearch = (value: string) => {
+    setSearchText(value);
+    fetchMenus(value, categoryFilter);
+  };
+
+  // Handle category filter
+  const handleCategoryChange = (value: string) => {
+    setCategoryFilter(value);
+    fetchMenus(searchText, value);
+  };
+
+  // Handle delete
+  const handleDelete = async (templateId: number) => {
+    try {
+      const response = await fetch(`/api/menus/${templateId}`, {
+        method: "DELETE",
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        messageApi.success("Menu item deleted successfully");
+        fetchMenus(searchText, categoryFilter);
+      } else {
+        messageApi.error(data.error || "Failed to delete menu item");
+      }
+    } catch (error) {
+      console.error("Delete menu item error:", error);
+      messageApi.error("An error occurred while deleting menu item");
+    }
+  };
+
+  // Handle create
+  const handleCreate = () => {
+    if (!selectedStore) {
+      messageApi.warning("Please select a store first");
+      return;
+    }
+    setModalMode("create");
+    setSelectedMenu(undefined);
+    setModalVisible(true);
+  };
+
+  // Handle edit
+  const handleEdit = (menu: MenuItem) => {
+    setModalMode("edit");
+    setSelectedMenu(menu);
+    setModalVisible(true);
+  };
+
+  // Handle modal close
+  const handleModalClose = () => {
+    setModalVisible(false);
+    setSelectedMenu(undefined);
+  };
+
+  // Handle modal success
+  const handleModalSuccess = () => {
+    fetchMenus(searchText, categoryFilter);
+  };
+
+  // Get selected store info
+  const selectedStoreInfo = stores.find((s) => s.storeId === selectedStore);
+
+  // Table columns
+  const columns: ColumnsType<MenuItem> = [
+    {
+      title: "Name",
+      dataIndex: "name",
+      key: "name",
+      width: 200,
+      ellipsis: true,
+    },
+    {
+      title: "Restaurant",
+      dataIndex: ["restaurant", "name"],
+      key: "restaurant",
+      width: 150,
+    },
+    {
+      title: "Category",
+      dataIndex: ["category", "name"],
+      key: "category",
+      width: 120,
+      render: (categoryName: string) =>
+        categoryName ? (
+          <Tag color="blue">{categoryName}</Tag>
+        ) : (
+          <Tag>Uncategorized</Tag>
+        ),
+    },
+    {
+      title: () => (
+        <Tooltip title="Base price (may be overridden for this store)">
+          Base Price
+        </Tooltip>
+      ),
+      dataIndex: "basePrice",
+      key: "basePrice",
+      width: 100,
+      align: "right",
+      render: (price: number) => `$${Number(price).toFixed(2)}`,
+    },
+    ...(selectedStore
+      ? [
+          {
+            title: () => (
+              <Tooltip title="Price at this specific store (overridden or base)">
+                <Space>
+                  <DollarOutlined />
+                  Store Price
+                </Space>
+              </Tooltip>
+            ),
+            dataIndex: "effectivePrice",
+            key: "effectivePrice",
+            width: 120,
+            align: "right" as const,
+            render: (price: number, record: MenuItem) => (
+              <Space>
+                <Text strong style={{ color: record.overriddenPrice ? "#1890ff" : "inherit" }}>
+                  ${Number(price).toFixed(2)}
+                </Text>
+                {record.overriddenPrice && (
+                  <Tooltip title="Price has been overridden for this store">
+                    <InfoCircleOutlined style={{ color: "#1890ff" }} />
+                  </Tooltip>
+                )}
+              </Space>
+            ),
+          },
+          {
+            title: () => (
+              <Tooltip title="Is this item assigned and available at the selected store?">
+                <Space>
+                  <ShopOutlined />
+                  At Store
+                </Space>
+              </Tooltip>
+            ),
+            dataIndex: "isAssignedToStore",
+            key: "storeStatus",
+            width: 120,
+            align: "center" as const,
+            render: (isAssigned: boolean, record: MenuItem) => {
+              if (!isAssigned) {
+                return <Tag color="default">Not Assigned</Tag>;
+              }
+              return record.isAvailableAtStore ? (
+                <Tag icon={<CheckCircleOutlined />} color="success">
+                  Available
+                </Tag>
+              ) : (
+                <Tag icon={<CloseCircleOutlined />} color="warning">
+                  Unavailable
+                </Tag>
+              );
+            },
+          },
+        ]
+      : []),
+    {
+      title: "Description",
+      dataIndex: "description",
+      key: "description",
+      ellipsis: true,
+      render: (desc) => desc || "-",
+    },
+    {
+      title: "Calories",
+      dataIndex: "calories",
+      key: "calories",
+      width: 100,
+      align: "center",
+      render: (calories) => calories || "-",
+    },
+    {
+      title: "Active",
+      dataIndex: "isActive",
+      key: "status",
+      width: 100,
+      align: "center",
+      render: (isActive: boolean) =>
+        isActive ? (
+          <Tag icon={<CheckCircleOutlined />} color="success">
+            Yes
+          </Tag>
+        ) : (
+          <Tag icon={<CloseCircleOutlined />} color="default">
+            No
+          </Tag>
+        ),
+    },
+    {
+      title: "Actions",
+      key: "actions",
+      width: 150,
+      fixed: "right",
+      render: (_, record) => (
+        <Space size="small">
+          <Button
+            type="link"
+            icon={<EditOutlined />}
+            onClick={() => handleEdit(record)}
+          >
+            Edit
+          </Button>
+          <Popconfirm
+            title="Delete Menu Item"
+            description="Are you sure? This will remove it from all stores!"
+            onConfirm={() => handleDelete(record.templateId)}
+            okText="Yes, Delete"
+            cancelText="Cancel"
+            okButtonProps={{ danger: true }}
+          >
+            <Button type="link" danger icon={<DeleteOutlined />}>
+              Delete
+            </Button>
+          </Popconfirm>
+        </Space>
+      ),
+    },
+  ];
+
+  return (
+    <div>
+      {contextHolder}
+
+      <div
+        style={{
+          marginBottom: 16,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <div>
+          <Title level={2} style={{ margin: 0 }}>
+            Menu Items
+          </Title>
+          <Text type="secondary">
+            Manage your restaurant menu items and pricing
+          </Text>
+        </div>
+        <Button
+          type="primary"
+          icon={<PlusOutlined />}
+          size="large"
+          onClick={handleCreate}
+          disabled={!selectedStore}
+        >
+          Add Menu Item
+        </Button>
+      </div>
+
+      {/* Store Selector */}
+      <Card style={{ marginBottom: 16 }}>
+        <Space direction="vertical" style={{ width: "100%" }} size="middle">
+          <div>
+            <Text strong style={{ marginRight: 8 }}>
+              <ShopOutlined /> Select Store:
+            </Text>
+            <Select
+              placeholder="Choose a store to manage"
+              size="large"
+              style={{ width: 400 }}
+              value={selectedStore}
+              onChange={handleStoreChange}
+              options={stores.map((store) => ({
+                label: store.displayName,
+                value: store.storeId,
+              }))}
+            />
+          </div>
+
+          {selectedStore && selectedStoreInfo && (
+            <Alert
+              message={
+                <Space>
+                  <Text strong>Managing:</Text>
+                  <Text>{selectedStoreInfo.displayName}</Text>
+                  <Text type="secondary">•</Text>
+                  <Text type="secondary">{selectedStoreInfo.address}</Text>
+                </Space>
+              }
+              type="info"
+              showIcon
+            />
+          )}
+        </Space>
+      </Card>
+
+      <Card>
+        <div style={{ marginBottom: 16, display: "flex", gap: 16 }}>
+          <Search
+            placeholder="Search by name or description..."
+            allowClear
+            enterButton={<SearchOutlined />}
+            size="large"
+            onSearch={handleSearch}
+            onChange={(e) => {
+              if (!e.target.value) {
+                handleSearch("");
+              }
+            }}
+            style={{ maxWidth: 400 }}
+          />
+
+          <Select
+            placeholder="Filter by Category"
+            allowClear
+            size="large"
+            style={{ width: 200 }}
+            onChange={handleCategoryChange}
+            value={categoryFilter || undefined}
+          >
+            {categories.map((cat) => (
+              <Select.Option
+                key={cat.categoryId}
+                value={cat.categoryId.toString()}
+              >
+                {cat.name}
+              </Select.Option>
+            ))}
+          </Select>
+        </div>
+
+        <Table
+          columns={columns}
+          dataSource={menus}
+          rowKey="templateId"
+          loading={loading}
+          pagination={{
+            defaultPageSize: 10,
+            showSizeChanger: true,
+            showTotal: (total) => `Total ${total} menu items`,
+          }}
+          scroll={{ x: 1400 }}
+        />
+      </Card>
+
+      {/* Menu Modal */}
+      <MenuModal
+        visible={modalVisible}
+        mode={modalMode}
+        menu={selectedMenu}
+        storeId={selectedStore}
+        restaurantId={selectedStoreInfo?.restaurantId}
+        onClose={handleModalClose}
+        onSuccess={handleModalSuccess}
+      />
+    </div>
+  );
+}

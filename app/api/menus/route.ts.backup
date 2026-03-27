@@ -1,0 +1,92 @@
+// app/api/menus/route.ts
+// List menu items API endpoint (GET)
+
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/db/prisma';
+import { verifyToken } from '@/lib/auth/jwt';
+
+export async function GET(request: NextRequest) {
+  try {
+    // Get token from cookie
+    const token = request.cookies.get('token')?.value;
+
+    if (!token) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    // Verify token
+    const decoded = verifyToken(token);
+    if (!decoded) {
+      return NextResponse.json(
+        { error: 'Invalid or expired token' },
+        { status: 401 }
+      );
+    }
+
+    // Get query parameters
+    const searchParams = request.nextUrl.searchParams;
+    const search = searchParams.get('search') || '';
+    const category = searchParams.get('category') || '';
+
+    // Build where clause based on user role
+    const where: any = {
+      isActive: true,
+      restaurant: {
+        isActive: true,
+      },
+    };
+
+    // For regular admins, only show their restaurant's menu items
+    if (decoded.role !== 'super_admin') {
+      where.restaurant = {
+        adminId: decoded.adminId,
+        isActive: true,
+      };
+    }
+
+    // Add search filter
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    // Add category filter
+    if (category) {
+      where.category = category;
+    }
+
+    // Fetch menu items
+    const menuItems = await prisma.menuTemplate.findMany({
+      where,
+      include: {
+        restaurant: {
+          select: {
+            restaurantId: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: [
+        { category: 'asc' },
+        { name: 'asc' },
+      ],
+    });
+
+    return NextResponse.json({
+      success: true,
+      menuItems,
+      count: menuItems.length,
+    });
+  } catch (error) {
+    console.error('List menu items error:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch menu items' },
+      { status: 500 }
+    );
+  }
+}
