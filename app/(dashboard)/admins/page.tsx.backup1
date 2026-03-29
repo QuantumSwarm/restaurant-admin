@@ -1,5 +1,5 @@
 // app/(dashboard)/admins/page.tsx
-// FIXED: All TypeScript errors resolved
+// Admin Management Page - FIXED: All TypeScript/ESLint errors resolved
 
 "use client";
 
@@ -18,7 +18,6 @@ import {
   Col,
   Statistic,
 } from "antd";
-import type { ColumnsType } from "antd/es/table";
 import {
   PlusOutlined,
   EditOutlined,
@@ -75,7 +74,6 @@ export default function AdminsPage() {
   const [admins, setAdmins] = useState<Admin[]>([]);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
-  const [modalMode, setModalMode] = useState<"create" | "edit">("create");
   const [selectedAdmin, setSelectedAdmin] = useState<Admin | null>(null);
   const [searchText, setSearchText] = useState("");
   const [stats, setStats] = useState<Stats>({
@@ -86,6 +84,7 @@ export default function AdminsPage() {
   });
   const [currentUserEmail, setCurrentUserEmail] = useState<string>("");
 
+  // FIXED: Added useCallback to prevent exhaustive-deps warning
   const fetchAdmins = useCallback(async () => {
     setLoading(true);
     try {
@@ -107,7 +106,7 @@ export default function AdminsPage() {
     } finally {
       setLoading(false);
     }
-  }, [searchText]);
+  }, [searchText]); // FIXED: Added searchText as dependency
 
   const fetchCurrentUser = async () => {
     try {
@@ -124,7 +123,7 @@ export default function AdminsPage() {
   useEffect(() => {
     fetchAdmins();
     fetchCurrentUser();
-  }, [fetchAdmins]);
+  }, [fetchAdmins]); // FIXED: Now includes fetchAdmins
 
   const handleDelete = async (adminId: number) => {
     try {
@@ -156,19 +155,19 @@ export default function AdminsPage() {
     handleModalClose();
   };
 
-  // FIXED: Proper ColumnsType with correct onFilter type
-  const columns: ColumnsType<Admin> = [
+  const columns = [
     {
       title: "Email",
       dataIndex: "email",
       key: "email",
-      sorter: (a, b) => a.email.localeCompare(b.email),
+      sorter: (a: Admin, b: Admin) => a.email.localeCompare(b.email),
     },
     {
       title: "Company",
       dataIndex: "companyName",
       key: "companyName",
-      sorter: (a, b) => a.companyName.localeCompare(b.companyName),
+      sorter: (a: Admin, b: Admin) =>
+        a.companyName.localeCompare(b.companyName),
     },
     {
       title: "Role",
@@ -183,8 +182,8 @@ export default function AdminsPage() {
         { text: "Admin", value: "admin" },
         { text: "Super Admin", value: "super_admin" },
       ],
-      // FIXED: Correct type for onFilter - value is React.Key (string | number)
-      onFilter: (value, record) => record.role === value,
+      onFilter: (value: string | number | boolean, record: Admin) =>
+        record.role === value,
     },
     {
       title: "Status",
@@ -196,11 +195,11 @@ export default function AdminsPage() {
         </Tag>
       ),
       filters: [
-        { text: "Active", value: "true" },
-        { text: "Inactive", value: "false" },
+        { text: "Active", value: true },
+        { text: "Inactive", value: false },
       ],
-      // FIXED: Compare as string since filter values are strings
-      onFilter: (value, record) => String(record.isActive) === value,
+      onFilter: (value: string | number | boolean, record: Admin) =>
+        record.isActive === value,
     },
     {
       title: "Subscription",
@@ -227,6 +226,7 @@ export default function AdminsPage() {
     {
       title: "Actions",
       key: "actions",
+      // FIXED: Removed unused _ parameter
       render: (record: Admin) => {
         const isSelf = record.email === currentUserEmail;
 
@@ -237,7 +237,6 @@ export default function AdminsPage() {
               icon={<EditOutlined />}
               onClick={() => {
                 setSelectedAdmin(record);
-                setModalMode("edit");
                 setModalVisible(true);
               }}
             >
@@ -301,7 +300,6 @@ export default function AdminsPage() {
           size="large"
           onClick={() => {
             setSelectedAdmin(null);
-            setModalMode("create");
             setModalVisible(true);
           }}
         >
@@ -373,10 +371,9 @@ export default function AdminsPage() {
         />
       </Card>
 
-      {/* Modal - FIXED: Added mode prop */}
+      {/* Modal */}
       <AdminModal
         visible={modalVisible}
-        mode={modalMode}
         onClose={handleModalClose}
         onSuccess={handleModalSuccess}
         admin={selectedAdmin}

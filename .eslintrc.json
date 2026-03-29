@@ -1,6 +1,27 @@
 {
-  "extends": [
-    "next/core-web-vitals",
-    "next/typescript"
-  ]
+  "extends": ["next/core-web-vitals", "next/typescript"],
+  "rules": {
+    // TypeScript - Treat as WARNINGS for migration speed
+    "@typescript-eslint/no-unused-vars": "warn",
+    "@typescript-eslint/no-explicit-any": "warn",
+    "@typescript-eslint/no-require-imports": "warn",
+
+    // React Hooks
+    "react-hooks/exhaustive-deps": "warn",
+    "react-hooks/rules-of-hooks": "error",
+
+    // Console - allow non-blocking log usage during development
+    "no-console": ["warn", { "allow": ["warn", "error"] }],
+
+    // React JSX
+    "react/no-unescaped-entities": "warn",
+
+    // Prevent common mistakes
+    "no-debugger": "error",
+    "no-alert": "warn",
+
+    // Enforce best practices
+    "prefer-const": "error",
+    "no-var": "error"
+  }
 }

@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
     const format = searchParams.get("format"); // 'dropdown' or default (list)
 
     // Build where clause based on user role
-    let where: any = {
+    const where: any = {
       isActive: true,
     };
 

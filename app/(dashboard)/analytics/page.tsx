@@ -499,7 +499,7 @@ export default function AnalyticsPage() {
           fontSize: 10,
           textAlign: "right",
         },
-        formatter: (text: string, item: any, index: number) => {
+        formatter: (text: string, index: number) => {
           // Show every 2nd hour to reduce crowding
           if (index % 2 === 0) {
             return text;

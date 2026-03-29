@@ -14,7 +14,8 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 // Generate secure random password
 function generatePassword(length: number = 16): string {
-  const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
+  const charset =
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
   let password = "";
   for (let i = 0; i < length; i++) {
     password += charset.charAt(Math.floor(Math.random() * charset.length));
@@ -30,7 +31,7 @@ export async function GET(request: NextRequest) {
     if (!token) {
       return NextResponse.json(
         { error: "Authentication required" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -38,7 +39,7 @@ export async function GET(request: NextRequest) {
     if (!user) {
       return NextResponse.json(
         { error: "Invalid or expired token" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -46,13 +47,13 @@ export async function GET(request: NextRequest) {
     if (user.role !== "super_admin") {
       return NextResponse.json(
         { error: "You do not have permission to view admins" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search") || "";
-    const status = searchParams.get("status") || "";
+    //const status = searchParams.get("status") || "";
     const role = searchParams.get("role") || "";
 
     // Build where clause
@@ -91,7 +92,7 @@ export async function GET(request: NextRequest) {
     console.error("Get admins error:", error);
     return NextResponse.json(
       { error: "Failed to fetch admins" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -104,7 +105,7 @@ export async function POST(request: NextRequest) {
     if (!token) {
       return NextResponse.json(
         { error: "Authentication required" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -112,7 +113,7 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json(
         { error: "Invalid or expired token" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -120,7 +121,7 @@ export async function POST(request: NextRequest) {
     if (user.role !== "super_admin") {
       return NextResponse.json(
         { error: "You do not have permission to create admins" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -150,15 +151,18 @@ export async function POST(request: NextRequest) {
     if (!email || !role || !companyName) {
       return NextResponse.json(
         { error: "Missing required fields" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Additional validation for admin role (requires subscription fields)
-    if (role === "admin" && (!monthlyCost || !creditsLimit || !overageCost || !billingCycleDay)) {
+    if (
+      role === "admin" &&
+      (!monthlyCost || !creditsLimit || !overageCost || !billingCycleDay)
+    ) {
       return NextResponse.json(
         { error: "Missing required subscription fields for admin role" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -170,7 +174,7 @@ export async function POST(request: NextRequest) {
     if (existingAdmin) {
       return NextResponse.json(
         { error: "Email already exists" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -204,7 +208,8 @@ export async function POST(request: NextRequest) {
           companyPhone: companyPhone || null,
           companyFax: companyFax || null,
           companyUrl: companyUrl || null,
-          stripeCustomerId: role === "admin" && stripeCustomer ? stripeCustomer.id : null, // Only for regular admins
+          stripeCustomerId:
+            role === "admin" && stripeCustomer ? stripeCustomer.id : null, // Only for regular admins
           isActive: true,
         },
       });
@@ -273,7 +278,7 @@ export async function POST(request: NextRequest) {
     console.error("Create admin error:", error);
     return NextResponse.json(
       { error: "Failed to create admin" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

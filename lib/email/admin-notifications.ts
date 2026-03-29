@@ -39,7 +39,7 @@ export async function sendAdminUpdateEmail(params: AdminUpdateEmailParams) {
 
   const transporter = createTransporter();
   const platformName = process.env.APP_NAME || "Quantum Swarm";
-  const platformWebsite = process.env.APP_URL || "https://quantum-swarm.com";
+  //const platformWebsite = process.env.APP_URL || "https://quantum-swarm.com";
   const supportEmail = process.env.SUPPORT_EMAIL || "support@quantum-swarm.com";
 
   const htmlContent = `
@@ -64,8 +64,16 @@ export async function sendAdminUpdateEmail(params: AdminUpdateEmailParams) {
       <p>Hi ${adminName},</p>
       <p>Your ${platformName} admin account has been updated by a system administrator.</p>
       
-      ${changes.role ? '<p><strong>• Your role has been changed</strong></p>' : ''}
-      ${changes.subscription ? '<p><strong>• Your subscription settings have been updated</strong></p>' : ''}
+      ${
+        changes.role
+          ? "<p><strong>• Your role has been changed</strong></p>"
+          : ""
+      }
+      ${
+        changes.subscription
+          ? "<p><strong>• Your subscription settings have been updated</strong></p>"
+          : ""
+      }
       
       <p>If you have any questions about these changes, please contact support.</p>
       <p style="margin-top: 30px;">
@@ -87,8 +95,10 @@ Hi ${adminName},
 
 Your ${platformName} admin account has been updated by a system administrator.
 
-${changes.role ? '• Your role has been changed\n' : ''}
-${changes.subscription ? '• Your subscription settings have been updated\n' : ''}
+${changes.role ? "• Your role has been changed\n" : ""}
+${
+  changes.subscription ? "• Your subscription settings have been updated\n" : ""
+}
 
 If you have any questions about these changes, please contact support at ${supportEmail}.
 
@@ -97,7 +107,9 @@ The ${platformName} Team
   `;
 
   await transporter.sendMail({
-    from: `"${process.env.SMTP_FROM_NAME || platformName}" <${process.env.SMTP_FROM_EMAIL}>`,
+    from: `"${process.env.SMTP_FROM_NAME || platformName}" <${
+      process.env.SMTP_FROM_EMAIL
+    }>`,
     to: adminEmail,
     subject: `🔔 Your ${platformName} Account Has Been Updated`,
     text: textContent,
@@ -172,7 +184,9 @@ The ${platformName} Team
   `;
 
   await transporter.sendMail({
-    from: `"${process.env.SMTP_FROM_NAME || platformName}" <${process.env.SMTP_FROM_EMAIL}>`,
+    from: `"${process.env.SMTP_FROM_NAME || platformName}" <${
+      process.env.SMTP_FROM_EMAIL
+    }>`,
     to: adminEmail,
     subject: `⚠️ Your ${platformName} Account Has Been Deactivated`,
     text: textContent,

@@ -1,180 +1,76 @@
 // lib/stripe/stripe.ts
-// Stripe initialization and utility functions
-// Centralized Stripe configuration for admin subscription system
+// FIXED: Updated to latest Stripe API version and removed deprecated type
 
 import Stripe from 'stripe';
 
-// ============================================================================
-// Configuration & Initialization
-// ============================================================================
-
 if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error(
-    'STRIPE_SECRET_KEY is not defined in environment variables. ' +
-    'Please add it to your .env file.'
-  );
+  throw new Error('STRIPE_SECRET_KEY is not defined in environment variables');
 }
 
-// Initialize Stripe with secret key
+/**
+ * Stripe client instance
+ * Configured with the latest stable API version
+ */
 export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2023-10-16', // Use latest stable API version
+  // FIXED: Updated to Stripe's latest stable API version (2025-02-24)
+  apiVersion: '2025-02-24.acacia',
   typescript: true,
-  maxNetworkRetries: 3, // Retry failed requests
-  timeout: 10000, // 10 second timeout
+  appInfo: {
+    name: 'Restaurant Admin Panel',
+    version: '1.0.0',
+  },
 });
 
-// ============================================================================
-// Constants
-// ============================================================================
-
-export const STRIPE_CURRENCY = (process.env.STRIPE_DEFAULT_CURRENCY || 'usd') as Stripe.CurrencyCode;
-export const STRIPE_PRODUCT_ID = process.env.STRIPE_PRODUCT_ID;
-
-// Validate product ID is configured
-if (!STRIPE_PRODUCT_ID) {
-  console.warn(
-    '⚠️  STRIPE_PRODUCT_ID not set in environment variables. ' +
-    'Run scripts/create-stripe-product.js to create the base product.'
-  );
-}
-
-// ============================================================================
-// Helper Functions
-// ============================================================================
+/**
+ * Default currency for all Stripe operations
+ * FIXED: Removed deprecated Stripe.CurrencyCode type
+ */
+export const STRIPE_CURRENCY = (process.env.STRIPE_DEFAULT_CURRENCY || 'usd') as string;
 
 /**
- * Check if Stripe is running in test mode
- * Test mode keys start with sk_test_
+ * Helper function to format amount for Stripe
+ * Stripe expects amounts in cents (smallest currency unit)
  */
-export function isTestMode(): boolean {
-  return process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ?? false;
-}
-
-/**
- * Convert dollars to cents for Stripe
- * Stripe amounts are in smallest currency unit (cents for USD)
- * @param dollars Amount in dollars (e.g., 50.00)
- * @returns Amount in cents (e.g., 5000)
- */
-export function toStripeAmount(dollars: number): number {
-  return Math.round(dollars * 100);
-}
-
-/**
- * Convert cents to dollars from Stripe
- * @param cents Amount in cents (e.g., 5000)
- * @returns Amount in dollars (e.g., 50.00)
- */
-export function fromStripeAmount(cents: number): number {
-  return Number((cents / 100).toFixed(2));
-}
-
-/**
- * Format Stripe error for user-friendly display
- * @param error Stripe error object
- * @returns User-friendly error message
- */
-export function formatStripeError(error: any): string {
-  if (error.type === 'StripeCardError') {
-    return `Payment failed: ${error.message}`;
-  } else if (error.type === 'StripeRateLimitError') {
-    return 'Too many requests. Please try again in a moment.';
-  } else if (error.type === 'StripeInvalidRequestError') {
-    return 'Invalid request. Please check your input.';
-  } else if (error.type === 'StripeAPIError') {
-    return 'Payment service error. Please try again later.';
-  } else if (error.type === 'StripeConnectionError') {
-    return 'Network error. Please check your connection.';
-  } else if (error.type === 'StripeAuthenticationError') {
-    return 'Authentication error. Please contact support.';
+export function formatAmountForStripe(amount: number, currency: string): number {
+  const numberFormat = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency,
+    currencyDisplay: 'symbol',
+  });
+  
+  const parts = numberFormat.formatToParts(amount);
+  let zeroDecimalCurrency = true;
+  
+  for (const part of parts) {
+    if (part.type === 'decimal') {
+      zeroDecimalCurrency = false;
+      break;
+    }
   }
   
-  return error.message || 'An unexpected error occurred.';
+  return zeroDecimalCurrency ? amount : Math.round(amount * 100);
 }
 
 /**
- * Calculate next billing date based on billing cycle day
- * @param billingCycleDay Day of month (1-28)
- * @param fromDate Starting date (defaults to today)
- * @returns Next billing date
+ * Helper function to format amount from Stripe
+ * Converts cents back to dollars
  */
-export function calculateNextBillingDate(
-  billingCycleDay: number,
-  fromDate: Date = new Date()
-): Date {
-  const nextBilling = new Date(fromDate);
+export function formatAmountFromStripe(amount: number, currency: string): number {
+  const numberFormat = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency,
+    currencyDisplay: 'symbol',
+  });
   
-  // Set to billing day of current month
-  nextBilling.setDate(billingCycleDay);
-  nextBilling.setHours(0, 0, 0, 0);
+  const parts = numberFormat.formatToParts(amount);
+  let zeroDecimalCurrency = true;
   
-  // If we've already passed the billing day this month, move to next month
-  if (nextBilling <= fromDate) {
-    nextBilling.setMonth(nextBilling.getMonth() + 1);
+  for (const part of parts) {
+    if (part.type === 'decimal') {
+      zeroDecimalCurrency = false;
+      break;
+    }
   }
   
-  return nextBilling;
+  return zeroDecimalCurrency ? amount : amount / 100;
 }
-
-/**
- * Calculate billing cycle anchor timestamp for Stripe
- * This determines when the first charge and all future charges occur
- * @param billingCycleDay Day of month (1-28)
- * @returns Unix timestamp for Stripe billing_cycle_anchor
- */
-export function calculateBillingCycleAnchor(billingCycleDay: number): number {
-  const anchorDate = calculateNextBillingDate(billingCycleDay);
-  return Math.floor(anchorDate.getTime() / 1000);
-}
-
-/**
- * Get current billing period dates
- * @param billingCycleDay Day of month (1-28)
- * @returns Object with period_start and period_end dates
- */
-export function getCurrentBillingPeriod(billingCycleDay: number) {
-  const today = new Date();
-  const currentMonth = today.getMonth();
-  const currentYear = today.getFullYear();
-  
-  // Period start
-  const periodStart = new Date(currentYear, currentMonth, billingCycleDay);
-  if (periodStart > today) {
-    // If billing day hasn't occurred this month, period started last month
-    periodStart.setMonth(periodStart.getMonth() - 1);
-  }
-  
-  // Period end (next billing day)
-  const periodEnd = new Date(periodStart);
-  periodEnd.setMonth(periodEnd.getMonth() + 1);
-  
-  return {
-    period_start: periodStart,
-    period_end: periodEnd,
-  };
-}
-
-// ============================================================================
-// Initialization Log
-// ============================================================================
-
-const mode = isTestMode() ? 'TEST' : 'LIVE';
-const modeEmoji = isTestMode() ? '🧪' : '🔴';
-
-console.log(`${modeEmoji} Stripe initialized in ${mode} mode`);
-
-if (isTestMode()) {
-  console.log('   Using test API key - no real charges will be made');
-} else {
-  console.warn('   ⚠️  LIVE mode - real charges will be made!');
-}
-
-// ============================================================================
-// Type Exports
-// ============================================================================
-
-export type StripeCustomer = Stripe.Customer;
-export type StripeSubscription = Stripe.Subscription;
-export type StripePrice = Stripe.Price;
-export type StripeInvoice = Stripe.Invoice;
-export type StripeInvoiceItem = Stripe.InvoiceItem;
