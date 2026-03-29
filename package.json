@@ -20,6 +20,7 @@
   "dependencies": {
     "@ant-design/icons": "^5.5.1",
     "@ant-design/nextjs-registry": "^1.0.1",
+    "@ant-design/plots": "^2.3.2",
     "@prisma/client": "^5.22.0",
     "@refinedev/antd": "^5.44.5",
     "@refinedev/cli": "^2.16.42",
