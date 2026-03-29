@@ -4,7 +4,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { verifyToken } from "@/lib/auth/jwt";
-import { sendAdminUpdateEmail, sendAdminDeleteEmail } from "@/lib/email/admin-notifications";
+import {
+  sendAdminUpdateEmail,
+  sendAdminDeleteEmail,
+} from "@/lib/email/admin-notifications";
 import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -12,9 +15,13 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 });
 
 // GET single admin
+//export async function GET(
+//  request: NextRequest,
+//  { params }: { params: { id: string } }
+//)
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const token = request.cookies.get("token")?.value;
@@ -22,7 +29,7 @@ export async function GET(
     if (!token) {
       return NextResponse.json(
         { error: "Authentication required" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -30,7 +37,7 @@ export async function GET(
     if (!user) {
       return NextResponse.json(
         { error: "Invalid or expired token" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -38,11 +45,13 @@ export async function GET(
     if (user.role !== "super_admin") {
       return NextResponse.json(
         { error: "You do not have permission to view admin details" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
-    const adminId = parseInt(params.id);
+    // const adminId = parseInt(params.id);
+    const { id } = await params; //
+    const adminId = parseInt(id);
 
     const admin = await prisma.admin.findUnique({
       where: { adminId },
@@ -63,7 +72,7 @@ export async function GET(
     console.error("Get admin error:", error);
     return NextResponse.json(
       { error: "Failed to fetch admin" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -71,7 +80,8 @@ export async function GET(
 // UPDATE admin
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  //{ params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const token = request.cookies.get("token")?.value;
@@ -79,7 +89,7 @@ export async function PUT(
     if (!token) {
       return NextResponse.json(
         { error: "Authentication required" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -87,7 +97,7 @@ export async function PUT(
     if (!user) {
       return NextResponse.json(
         { error: "Invalid or expired token" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -95,11 +105,13 @@ export async function PUT(
     if (user.role !== "super_admin") {
       return NextResponse.json(
         { error: "You do not have permission to update admins" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
-    const adminId = parseInt(params.id);
+    // const adminId = parseInt(params.id);
+    const { id } = await params; // ← AWAIT HERE
+    const adminId = parseInt(id);
     const body = await request.json();
 
     const {
@@ -141,10 +153,18 @@ export async function PUT(
         data: {
           role: role || existingAdmin.role,
           companyName: companyName || existingAdmin.companyName,
-          companyAddress: companyAddress !== undefined ? companyAddress : existingAdmin.companyAddress,
-          companyPhone: companyPhone !== undefined ? companyPhone : existingAdmin.companyPhone,
-          companyFax: companyFax !== undefined ? companyFax : existingAdmin.companyFax,
-          companyUrl: companyUrl !== undefined ? companyUrl : existingAdmin.companyUrl,
+          companyAddress:
+            companyAddress !== undefined
+              ? companyAddress
+              : existingAdmin.companyAddress,
+          companyPhone:
+            companyPhone !== undefined
+              ? companyPhone
+              : existingAdmin.companyPhone,
+          companyFax:
+            companyFax !== undefined ? companyFax : existingAdmin.companyFax,
+          companyUrl:
+            companyUrl !== undefined ? companyUrl : existingAdmin.companyUrl,
         },
       });
 
@@ -161,7 +181,7 @@ export async function PUT(
         if (existingAdmin.subscription.stripeSubscriptionId) {
           try {
             await stripe.subscriptions.cancel(
-              existingAdmin.subscription.stripeSubscriptionId
+              existingAdmin.subscription.stripeSubscriptionId,
             );
           } catch (stripeError) {
             console.error("Failed to cancel Stripe subscription:", stripeError);
@@ -207,16 +227,46 @@ export async function PUT(
         subscription = await tx.adminSubscription.update({
           where: { adminId },
           data: {
-            monthlyCost: monthlyCost !== undefined ? parseFloat(monthlyCost) : existingAdmin.subscription.monthlyCost,
-            creditsLimit: creditsLimit !== undefined ? parseInt(creditsLimit) : existingAdmin.subscription.creditsLimit,
-            overageCostPer100: overageCost !== undefined ? parseFloat(overageCost) : existingAdmin.subscription.overageCostPer100,
-            billingCycleDay: billingCycleDay !== undefined ? parseInt(billingCycleDay) : existingAdmin.subscription.billingCycleDay,
-            featureRestaurant: featureRestaurant !== undefined ? featureRestaurant : existingAdmin.subscription.featureRestaurant,
-            featureReports: featureReports !== undefined ? featureReports : existingAdmin.subscription.featureReports,
-            featureDownloadAudio: featureAudioDownload !== undefined ? featureAudioDownload : existingAdmin.subscription.featureDownloadAudio,
-            featureDownloadTranscription: featureTranscriptDownload !== undefined ? featureTranscriptDownload : existingAdmin.subscription.featureDownloadTranscription,
-            featureBulkSms: featureBulkSms !== undefined ? featureBulkSms : existingAdmin.subscription.featureBulkSms,
-            featureSmsConfirmation: featureSmsConfirmation !== undefined ? featureSmsConfirmation : existingAdmin.subscription.featureSmsConfirmation,
+            monthlyCost:
+              monthlyCost !== undefined
+                ? parseFloat(monthlyCost)
+                : existingAdmin.subscription.monthlyCost,
+            creditsLimit:
+              creditsLimit !== undefined
+                ? parseInt(creditsLimit)
+                : existingAdmin.subscription.creditsLimit,
+            overageCostPer100:
+              overageCost !== undefined
+                ? parseFloat(overageCost)
+                : existingAdmin.subscription.overageCostPer100,
+            billingCycleDay:
+              billingCycleDay !== undefined
+                ? parseInt(billingCycleDay)
+                : existingAdmin.subscription.billingCycleDay,
+            featureRestaurant:
+              featureRestaurant !== undefined
+                ? featureRestaurant
+                : existingAdmin.subscription.featureRestaurant,
+            featureReports:
+              featureReports !== undefined
+                ? featureReports
+                : existingAdmin.subscription.featureReports,
+            featureDownloadAudio:
+              featureAudioDownload !== undefined
+                ? featureAudioDownload
+                : existingAdmin.subscription.featureDownloadAudio,
+            featureDownloadTranscription:
+              featureTranscriptDownload !== undefined
+                ? featureTranscriptDownload
+                : existingAdmin.subscription.featureDownloadTranscription,
+            featureBulkSms:
+              featureBulkSms !== undefined
+                ? featureBulkSms
+                : existingAdmin.subscription.featureBulkSms,
+            featureSmsConfirmation:
+              featureSmsConfirmation !== undefined
+                ? featureSmsConfirmation
+                : existingAdmin.subscription.featureSmsConfirmation,
           },
         });
       }
@@ -247,7 +297,7 @@ export async function PUT(
     console.error("Update admin error:", error);
     return NextResponse.json(
       { error: "Failed to update admin" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -255,7 +305,8 @@ export async function PUT(
 // DELETE admin (soft delete)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  // { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const token = request.cookies.get("token")?.value;
@@ -263,7 +314,7 @@ export async function DELETE(
     if (!token) {
       return NextResponse.json(
         { error: "Authentication required" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -271,7 +322,7 @@ export async function DELETE(
     if (!user) {
       return NextResponse.json(
         { error: "Invalid or expired token" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -279,17 +330,19 @@ export async function DELETE(
     if (user.role !== "super_admin") {
       return NextResponse.json(
         { error: "You do not have permission to delete admins" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
-    const adminId = parseInt(params.id);
+    //const adminId = parseInt(params.id);
+    const { id } = await params; // ← AWAIT HERE
+    const adminId = parseInt(id);
 
     // Prevent deleting yourself
     if (user.adminId === adminId) {
       return NextResponse.json(
         { error: "You cannot delete your own account" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -308,7 +361,7 @@ export async function DELETE(
     if (!existingAdmin.isActive) {
       return NextResponse.json(
         { error: "Admin is already deleted" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -334,7 +387,7 @@ export async function DELETE(
         if (existingAdmin.subscription.stripeSubscriptionId) {
           try {
             await stripe.subscriptions.cancel(
-              existingAdmin.subscription.stripeSubscriptionId
+              existingAdmin.subscription.stripeSubscriptionId,
             );
           } catch (stripeError) {
             console.error("Failed to cancel Stripe subscription:", stripeError);
@@ -361,7 +414,7 @@ export async function DELETE(
     console.error("Delete admin error:", error);
     return NextResponse.json(
       { error: "Failed to delete admin" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
