@@ -10,15 +10,19 @@ import {
 } from "@/lib/email/admin-notifications";
 import Stripe from "stripe";
 
+// At the very top of route.ts, after imports:
+if (process.env.NODE_ENV === "production") {
+  console.log("🔍 Build-time env check:", {
+    hasStripeKey: !!process.env.STRIPE_SECRET_KEY,
+    hasDatabaseUrl: !!process.env.DATABASE_URL,
+    nodeEnv: process.env.NODE_ENV,
+  });
+}
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2025-02-24.acacia",
 });
 
-// GET single admin
-//export async function GET(
-//  request: NextRequest,
-//  { params }: { params: { id: string } }
-//)
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
