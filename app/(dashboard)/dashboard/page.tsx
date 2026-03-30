@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 // app/(dashboard)/dashboard/page.tsx
 // Dashboard home page with stats overview
@@ -72,14 +72,14 @@ export default function DashboardPage() {
       </Row>
 
       {/* Welcome Card */}
-      <Card style={{ marginTop: 24 }} title="🎉 Welcome to Restaurant Admin">
+      <Card style={{ marginTop: 24 }} title="ðŸŽ‰ Welcome to Restaurant Admin">
         <p>Your admin panel is now set up! Here's what you can do:</p>
         <ul>
-          <li>✅ Manage your restaurant stores and locations</li>
-          <li>✅ Create and edit menu items</li>
-          <li>✅ View analytics and reports</li>
-          <li>✅ Send bulk SMS campaigns</li>
-          <li>✅ Access AI conversation recordings</li>
+          <li>âœ… Manage your restaurant stores and locations</li>
+          <li>âœ… Create and edit menu items</li>
+          <li>âœ… View analytics and reports</li>
+          <li>âœ… Send bulk SMS campaigns</li>
+          <li>âœ… Access AI conversation recordings</li>
         </ul>
         <p style={{ marginTop: 16, color: "#8c8c8c" }}>
           <strong>Next steps:</strong> Start by adding your first store in the

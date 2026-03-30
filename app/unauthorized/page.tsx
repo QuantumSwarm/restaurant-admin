@@ -1,5 +1,7 @@
-'use client';
+﻿'use client';
 
+
+export const dynamic = 'force-dynamic';
 // app/unauthorized/page.tsx
 // 403 Forbidden - User doesn't have permission
 

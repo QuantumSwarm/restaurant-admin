@@ -1,5 +1,7 @@
-'use client';
+﻿'use client';
 
+
+export const dynamic = 'force-dynamic';
 // app/(auth)/login/page.tsx
 // Login page with email/password form
 
@@ -92,7 +94,7 @@ export default function LoginPage() {
               color: 'white',
             }}
           >
-            🍽️
+            ðŸ½ï¸
           </div>
           <Title level={2} style={{ margin: 0 }}>
             Restaurant Admin

@@ -1,4 +1,4 @@
-// app/(dashboard)/admins/page.tsx
+﻿// app/(dashboard)/admins/page.tsx
 // FIXED: All TypeScript errors resolved
 
 "use client";
@@ -258,10 +258,10 @@ export default function AdminsPage() {
                     <p style={{ marginBottom: 0 }}>
                       This will:
                       <br />
-                      • Deactivate the account
+                      â€¢ Deactivate the account
                       <br />
-                      • Cancel their subscription
-                      <br />• Send a notification email
+                      â€¢ Cancel their subscription
+                      <br />â€¢ Send a notification email
                     </p>
                   </div>
                 }

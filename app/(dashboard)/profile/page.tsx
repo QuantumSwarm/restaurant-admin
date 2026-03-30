@@ -1,5 +1,7 @@
-'use client';
+﻿'use client';
 
+
+export const dynamic = 'force-dynamic';
 // app/(dashboard)/profile/page.tsx
 // User profile page with password change form
 
@@ -117,7 +119,7 @@ export default function ProfilePage() {
               </Text>
               <br />
               <Text>
-                {user?.role === 'super_admin' ? '👑 Super Admin' : '👤 Admin'}
+                {user?.role === 'super_admin' ? 'ðŸ‘‘ Super Admin' : 'ðŸ‘¤ Admin'}
               </Text>
             </div>
           </Space>

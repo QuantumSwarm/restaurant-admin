@@ -8,7 +8,7 @@ const nextConfig = {
 
   // CRITICAL: Disable all static optimization
   experimental: {
-    appDir: true,
+    //appDir: true,
   },
 
   // Don't generate static error pages

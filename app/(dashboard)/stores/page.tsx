@@ -1,5 +1,7 @@
-'use client';
+﻿'use client';
 
+
+export const dynamic = 'force-dynamic';
 // app/(dashboard)/stores/page.tsx
 // Stores list page with table
 

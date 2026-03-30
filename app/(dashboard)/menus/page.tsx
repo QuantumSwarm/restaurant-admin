@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 // app/(dashboard)/menus/page.tsx
 // UPDATED: Menus page with Store Selector and store-specific data
@@ -463,7 +463,7 @@ export default function MenusPage() {
                 <Space>
                   <Text strong>Managing:</Text>
                   <Text>{selectedStoreInfo.displayName}</Text>
-                  <Text type="secondary">•</Text>
+                  <Text type="secondary">â€¢</Text>
                   <Text type="secondary">{selectedStoreInfo.address}</Text>
                 </Space>
               }

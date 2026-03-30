@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 // app/(dashboard)/analytics/page.tsx
 // Complete analytics dashboard with PDF export
@@ -789,7 +789,7 @@ export default function AnalyticsPage() {
                       fontStyle: "italic",
                     }}
                   >
-                    ℹ️ Hours with zero orders are omitted from this chart
+                    â„¹ï¸ Hours with zero orders are omitted from this chart
                   </Text>
                 </>
               ) : (
