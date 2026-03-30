@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { verifyToken } from "@/lib/auth/jwt";
-
+export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   try {
     // Get token from cookie
@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     if (!token) {
       return NextResponse.json(
         { error: "Authentication required" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     if (!user) {
       return NextResponse.json(
         { error: "Invalid or expired token" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -40,9 +40,9 @@ export async function GET(request: NextRequest) {
     if (user.role === "admin") {
       // Admins can only see stores from their restaurants
       const adminRestaurants = await prisma.restaurant.findMany({
-        where: { 
+        where: {
           adminId: user.adminId,
-          isActive: true 
+          isActive: true,
         },
         select: { restaurantId: true },
       });
@@ -79,10 +79,7 @@ export async function GET(request: NextRequest) {
           },
         },
       },
-      orderBy: [
-        { restaurant: { name: "asc" } },
-        { location: { name: "asc" } },
-      ],
+      orderBy: [{ restaurant: { name: "asc" } }, { location: { name: "asc" } }],
     });
 
     // Return dropdown format if requested
@@ -114,7 +111,7 @@ export async function GET(request: NextRequest) {
     console.error("Fetch stores error:", error);
     return NextResponse.json(
       { error: "Failed to fetch stores" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

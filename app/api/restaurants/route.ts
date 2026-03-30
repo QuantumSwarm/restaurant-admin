@@ -1,19 +1,19 @@
 // app/api/restaurants/route.ts
 // List restaurants API endpoint (for dropdowns)
 
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db/prisma';
-import { verifyToken } from '@/lib/auth/jwt';
-
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/db/prisma";
+import { verifyToken } from "@/lib/auth/jwt";
+export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   try {
     // Get token from cookie
-    const token = request.cookies.get('token')?.value;
+    const token = request.cookies.get("token")?.value;
 
     if (!token) {
       return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
+        { error: "Authentication required" },
+        { status: 401 },
       );
     }
 
@@ -21,8 +21,8 @@ export async function GET(request: NextRequest) {
     const decoded = verifyToken(token);
     if (!decoded) {
       return NextResponse.json(
-        { error: 'Invalid or expired token' },
-        { status: 401 }
+        { error: "Invalid or expired token" },
+        { status: 401 },
       );
     }
 
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
     };
 
     // For regular admins, only show their restaurants
-    if (decoded.role !== 'super_admin') {
+    if (decoded.role !== "super_admin") {
       where.adminId = decoded.adminId;
     }
 
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
         name: true,
       },
       orderBy: {
-        name: 'asc',
+        name: "asc",
       },
     });
 
@@ -53,10 +53,10 @@ export async function GET(request: NextRequest) {
       restaurants,
     });
   } catch (error) {
-    console.error('List restaurants error:', error);
+    console.error("List restaurants error:", error);
     return NextResponse.json(
-      { error: 'Failed to fetch restaurants' },
-      { status: 500 }
+      { error: "Failed to fetch restaurants" },
+      { status: 500 },
     );
   }
 }

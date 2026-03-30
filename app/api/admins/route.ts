@@ -2,11 +2,23 @@
 // Admin CRUD API with Stripe Integration
 
 import { NextRequest, NextResponse } from "next/server";
+
+export const dynamic = 'force-dynamic';
 import { prisma } from "@/lib/db/prisma";
+
+export const dynamic = 'force-dynamic';
 import { verifyToken } from "@/lib/auth/jwt";
+
+export const dynamic = 'force-dynamic';
 import bcrypt from "bcryptjs";
+
+export const dynamic = 'force-dynamic';
 import { sendWelcomeEmail } from "@/lib/email/welcome";
+
+export const dynamic = 'force-dynamic';
 import Stripe from "stripe";
+
+export const dynamic = 'force-dynamic';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2025-02-24.acacia",
@@ -282,3 +294,4 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+

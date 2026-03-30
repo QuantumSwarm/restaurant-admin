@@ -1,19 +1,19 @@
 // app/api/transcriptions/route.ts
 // List transcriptions with filtering, search, and date range
 
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db/prisma';
-import { verifyToken } from '@/lib/auth/jwt';
-
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/db/prisma";
+import { verifyToken } from "@/lib/auth/jwt";
+export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   try {
     // Get token from cookie
-    const token = request.cookies.get('token')?.value;
+    const token = request.cookies.get("token")?.value;
 
     if (!token) {
       return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
+        { error: "Authentication required" },
+        { status: 401 },
       );
     }
 
@@ -21,37 +21,40 @@ export async function GET(request: NextRequest) {
     const decoded = verifyToken(token);
     if (!decoded) {
       return NextResponse.json(
-        { error: 'Invalid or expired token' },
-        { status: 401 }
+        { error: "Invalid or expired token" },
+        { status: 401 },
       );
     }
 
     // Get query parameters
     const { searchParams } = new URL(request.url);
-    const startDate = searchParams.get('startDate');
-    const endDate = searchParams.get('endDate');
-    const search = searchParams.get('search');
+    const startDate = searchParams.get("startDate");
+    const endDate = searchParams.get("endDate");
+    const search = searchParams.get("search");
 
     // Validate required parameters
     if (!startDate || !endDate) {
       return NextResponse.json(
-        { error: 'Missing required parameters: startDate, endDate' },
-        { status: 400 }
+        { error: "Missing required parameters: startDate, endDate" },
+        { status: 400 },
       );
     }
 
     // Build permission clause
-    const permissionClause = decoded.role === 'super_admin'
-      ? ''
-      : `AND r.admin_id = ${decoded.adminId}`;
+    const permissionClause =
+      decoded.role === "super_admin"
+        ? ""
+        : `AND r.admin_id = ${decoded.adminId}`;
 
     // Build search clause
-    const searchClause = search && search.trim()
-      ? `AND t.transcript_text ILIKE '%${search.trim().replace(/'/g, "''")}%'`
-      : '';
+    const searchClause =
+      search && search.trim()
+        ? `AND t.transcript_text ILIKE '%${search.trim().replace(/'/g, "''")}%'`
+        : "";
 
     // Query transcriptions with customer information
-    const transcriptions = await prisma.$queryRawUnsafe<any[]>(`
+    const transcriptions = await prisma.$queryRawUnsafe<any[]>(
+      `
       SELECT
         t.transcription_id,
         t.store_id,
@@ -77,7 +80,10 @@ export async function GET(request: NextRequest) {
       ${searchClause}
       ORDER BY t.created_at DESC
       LIMIT 100
-    `, startDate, endDate);
+    `,
+      startDate,
+      endDate,
+    );
 
     // Format response with preview
     const formattedTranscriptions = transcriptions.map((t: any) => ({
@@ -101,12 +107,11 @@ export async function GET(request: NextRequest) {
       transcriptions: formattedTranscriptions,
       count: formattedTranscriptions.length,
     });
-
   } catch (error) {
-    console.error('[List Transcriptions] Error:', error);
+    console.error("[List Transcriptions] Error:", error);
     return NextResponse.json(
-      { error: 'Failed to fetch transcriptions' },
-      { status: 500 }
+      { error: "Failed to fetch transcriptions" },
+      { status: 500 },
     );
   }
 }

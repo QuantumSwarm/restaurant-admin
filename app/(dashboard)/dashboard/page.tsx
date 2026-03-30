@@ -1,16 +1,17 @@
-'use client';
+"use client";
 
 // app/(dashboard)/dashboard/page.tsx
 // Dashboard home page with stats overview
 
-import React from 'react';
-import { Card, Col, Row, Statistic, Typography } from 'antd';
+import React from "react";
+
+import { Card, Col, Row, Statistic, Typography } from "antd";
 import {
   ShopOutlined,
   MenuOutlined,
   DollarOutlined,
   PhoneOutlined,
-} from '@ant-design/icons';
+} from "@ant-design/icons";
 
 const { Title } = Typography;
 
@@ -18,7 +19,7 @@ export default function DashboardPage() {
   return (
     <div>
       <Title level={2}>Dashboard</Title>
-      <p style={{ color: '#8c8c8c', marginBottom: 24 }}>
+      <p style={{ color: "#8c8c8c", marginBottom: 24 }}>
         Welcome to your Restaurant Admin Panel
       </p>
 
@@ -30,7 +31,7 @@ export default function DashboardPage() {
               title="Total Stores"
               value={0}
               prefix={<ShopOutlined />}
-              valueStyle={{ color: '#3f8600' }}
+              valueStyle={{ color: "#3f8600" }}
             />
           </Card>
         </Col>
@@ -41,7 +42,7 @@ export default function DashboardPage() {
               title="Menu Items"
               value={0}
               prefix={<MenuOutlined />}
-              valueStyle={{ color: '#1890ff' }}
+              valueStyle={{ color: "#1890ff" }}
             />
           </Card>
         </Col>
@@ -53,7 +54,7 @@ export default function DashboardPage() {
               value={0}
               prefix={<DollarOutlined />}
               precision={2}
-              valueStyle={{ color: '#cf1322' }}
+              valueStyle={{ color: "#cf1322" }}
             />
           </Card>
         </Col>
@@ -64,20 +65,15 @@ export default function DashboardPage() {
               title="AI Calls Today"
               value={0}
               prefix={<PhoneOutlined />}
-              valueStyle={{ color: '#722ed1' }}
+              valueStyle={{ color: "#722ed1" }}
             />
           </Card>
         </Col>
       </Row>
 
       {/* Welcome Card */}
-      <Card
-        style={{ marginTop: 24 }}
-        title="🎉 Welcome to Restaurant Admin"
-      >
-        <p>
-          Your admin panel is now set up! Here's what you can do:
-        </p>
+      <Card style={{ marginTop: 24 }} title="🎉 Welcome to Restaurant Admin">
+        <p>Your admin panel is now set up! Here's what you can do:</p>
         <ul>
           <li>✅ Manage your restaurant stores and locations</li>
           <li>✅ Create and edit menu items</li>
@@ -85,8 +81,9 @@ export default function DashboardPage() {
           <li>✅ Send bulk SMS campaigns</li>
           <li>✅ Access AI conversation recordings</li>
         </ul>
-        <p style={{ marginTop: 16, color: '#8c8c8c' }}>
-          <strong>Next steps:</strong> Start by adding your first store in the Stores section.
+        <p style={{ marginTop: 16, color: "#8c8c8c" }}>
+          <strong>Next steps:</strong> Start by adding your first store in the
+          Stores section.
         </p>
       </Card>
     </div>
