@@ -1,61 +1,48 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-
-  // Enable SWC minification
   swcMinify: true,
 
-  // Disable static optimization for pages that need runtime data
-  // This prevents build errors when pages try to fetch data at build time
+  // CRITICAL: Force everything to be server-rendered
+  output: "standalone",
+
+  // CRITICAL: Disable all static optimization
   experimental: {
-    // Disable static page generation for dynamic routes
+    appDir: true,
   },
 
-  // Image optimization
+  // Don't generate static error pages
+  generateBuildId: async () => {
+    return "build-" + Date.now();
+  },
+
   images: {
-    domains: [
-      "localhost",
-      // Add your image CDN domains here
-    ],
+    domains: ["localhost"],
     formats: ["image/webp", "image/avif"],
   },
 
-  // Environment variables exposed to the browser
   env: {
     APP_NAME: process.env.APP_NAME || "Restaurant Admin Panel",
     APP_URL: process.env.APP_URL || "http://localhost:3000",
   },
 
-  // Webpack configuration
-  webpack: (config, { isServer }) => {
-    // Add custom webpack config if needed
+  webpack: (config) => {
     return config;
   },
 
-  // Headers configuration
   async headers() {
     return [
       {
         source: "/:path*",
         headers: [
-          {
-            key: "X-Frame-Options",
-            value: "DENY",
-          },
-          {
-            key: "X-Content-Type-Options",
-            value: "nosniff",
-          },
-          {
-            key: "Referrer-Policy",
-            value: "strict-origin-when-cross-origin",
-          },
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
         ],
       },
     ];
   },
 
-  // Redirects
   async redirects() {
     return [
       {
@@ -65,11 +52,6 @@ const nextConfig = {
       },
     ];
   },
-
-  // IMPORTANT: Tell Next.js these are server-side only pages
-  // This prevents them from being pre-rendered at build time
-  // which would fail because they need database/auth
-  output: "standalone",
 };
 
 module.exports = nextConfig;
