@@ -1,7 +1,11 @@
 ﻿// app/(dashboard)/admins/page.tsx
-// FIXED: All TypeScript errors resolved
+// FIXED: All TypeScript errors resolved + build/runtime fixes
 
 "use client";
+
+// ✅ FIX #1: Add this export to prevent static generation errors
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 import React, { useState, useEffect, useCallback } from "react";
 import {
@@ -96,8 +100,12 @@ export default function AdminsPage() {
       const data = await response.json();
 
       if (data.success) {
-        setAdmins(data.admins);
-        setStats(data.stats);
+        // ✅ FIX #2: Add fallback for admins array
+        setAdmins(data.admins || []);
+        // ✅ FIX #3: Add fallback for stats object
+        setStats(
+          data.stats || { total: 0, active: 0, admins: 0, superAdmins: 0 },
+        );
       } else {
         message.error(data.error || "Failed to fetch admins");
       }
@@ -214,11 +222,16 @@ export default function AdminsPage() {
         }
         return (
           <Space direction="vertical" size="small">
-            <Tag color={record.subscription.status === "active" ? "green" : "orange"}>
+            <Tag
+              color={
+                record.subscription.status === "active" ? "green" : "orange"
+              }
+            >
               {record.subscription.status}
             </Tag>
             <span style={{ fontSize: "12px" }}>
-              Credits: {record.subscription.creditsUsed}/{record.subscription.plan.creditsLimit}
+              Credits: {record.subscription.creditsUsed}/
+              {record.subscription.plan.creditsLimit}
             </span>
           </Space>
         );
@@ -244,7 +257,12 @@ export default function AdminsPage() {
               Edit
             </Button>
             {isSelf ? (
-              <Button type="link" danger disabled title="You cannot delete your own account">
+              <Button
+                type="link"
+                danger
+                disabled
+                title="You cannot delete your own account"
+              >
                 Delete
               </Button>
             ) : (
@@ -253,15 +271,16 @@ export default function AdminsPage() {
                 description={
                   <div style={{ maxWidth: 300 }}>
                     <p>
-                      Are you sure you want to delete <strong>{record.email}</strong>?
+                      Are you sure you want to delete{" "}
+                      <strong>{record.email}</strong>?
                     </p>
                     <p style={{ marginBottom: 0 }}>
                       This will:
                       <br />
-                      â€¢ Deactivate the account
+                      • Deactivate the account
                       <br />
-                      â€¢ Cancel their subscription
-                      <br />â€¢ Send a notification email
+                      • Cancel their subscription
+                      <br />• Send a notification email
                     </p>
                   </div>
                 }
@@ -315,7 +334,8 @@ export default function AdminsPage() {
           <Card>
             <Statistic
               title="Total Admins"
-              value={stats.total}
+              // ✅ FIX #4: Add optional chaining + nullish coalescing
+              value={stats?.total ?? 0}
               prefix={<CheckCircleOutlined />}
             />
           </Card>
@@ -324,7 +344,8 @@ export default function AdminsPage() {
           <Card>
             <Statistic
               title="Active"
-              value={stats.active}
+              // ✅ FIX #5: Add optional chaining + nullish coalescing
+              value={stats?.active ?? 0}
               valueStyle={{ color: "#3f8600" }}
               prefix={<CheckCircleOutlined />}
             />
@@ -332,12 +353,20 @@ export default function AdminsPage() {
         </Col>
         <Col xs={24} sm={12} md={6}>
           <Card>
-            <Statistic title="Admins" value={stats.admins} />
+            <Statistic
+              title="Admins"
+              // ✅ FIX #6: Add optional chaining + nullish coalescing
+              value={stats?.admins ?? 0}
+            />
           </Card>
         </Col>
         <Col xs={24} sm={12} md={6}>
           <Card>
-            <Statistic title="Super Admins" value={stats.superAdmins} />
+            <Statistic
+              title="Super Admins"
+              // ✅ FIX #7: Add optional chaining + nullish coalescing
+              value={stats?.superAdmins ?? 0}
+            />
           </Card>
         </Col>
       </Row>

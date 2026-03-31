@@ -6,6 +6,7 @@
 import React from "react";
 import { Result, Button } from "antd";
 import { useRouter } from "next/navigation";
+export const dynamic = "force-dynamic";
 
 export default function NotFound() {
   const router = useRouter();

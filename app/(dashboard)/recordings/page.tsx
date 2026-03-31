@@ -2,19 +2,12 @@
 // FIXED: Removed unused imports
 
 "use client";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 import React, { useState } from "react";
-import {
-  Card,
-  Tabs,
-  Typography,
-  Space,
-  Alert,
-} from "antd";
-import {
-  SoundOutlined,
-  FileTextOutlined,
-} from "@ant-design/icons";
+import { Card, Tabs, Typography, Space, Alert } from "antd";
+import { SoundOutlined, FileTextOutlined } from "@ant-design/icons";
 
 const { Title } = Typography;
 const { TabPane } = Tabs;

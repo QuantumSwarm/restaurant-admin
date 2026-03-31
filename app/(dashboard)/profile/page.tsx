@@ -1,15 +1,24 @@
-﻿'use client';
+﻿"use client";
 
-
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 // app/(dashboard)/profile/page.tsx
 // User profile page with password change form
 
-import React, { useState, useEffect } from 'react';
-import { Card, Form, Input, Button, message, Typography, Space, Alert } from 'antd';
-import { LockOutlined, UserOutlined, MailOutlined } from '@ant-design/icons';
-import { useRouter } from 'next/navigation';
-import { getStoredUser } from '@/lib/auth/permissions';
+import React, { useState, useEffect } from "react";
+import {
+  Card,
+  Form,
+  Input,
+  Button,
+  message,
+  Typography,
+  Space,
+  Alert,
+} from "antd";
+import { LockOutlined, UserOutlined, MailOutlined } from "@ant-design/icons";
+import { useRouter } from "next/navigation";
+import { getStoredUser } from "@/lib/auth/permissions";
 
 const { Title, Text } = Typography;
 
@@ -34,10 +43,10 @@ export default function ProfilePage() {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/auth/change-password', {
-        method: 'POST',
+      const response = await fetch("/api/auth/change-password", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(values),
       });
@@ -45,22 +54,22 @@ export default function ProfilePage() {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        message.success('Password changed successfully! Please login again.');
-        
+        message.success("Password changed successfully! Please login again.");
+
         // Clear local storage
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+
         // Redirect to login after 2 seconds
         setTimeout(() => {
-          router.push('/login');
+          router.push("/login");
         }, 2000);
       } else {
-        message.error(data.error || 'Failed to change password');
+        message.error(data.error || "Failed to change password");
       }
     } catch (error) {
-      console.error('Password change error:', error);
-      message.error('An error occurred. Please try again.');
+      console.error("Password change error:", error);
+      message.error("An error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -68,29 +77,37 @@ export default function ProfilePage() {
 
   const validatePassword = (_: any, value: string) => {
     if (!value) {
-      return Promise.reject(new Error('Please enter your new password'));
+      return Promise.reject(new Error("Please enter your new password"));
     }
     if (value.length < 8) {
-      return Promise.reject(new Error('Password must be at least 8 characters'));
+      return Promise.reject(
+        new Error("Password must be at least 8 characters"),
+      );
     }
     if (!/[A-Z]/.test(value)) {
-      return Promise.reject(new Error('Password must contain at least one uppercase letter'));
+      return Promise.reject(
+        new Error("Password must contain at least one uppercase letter"),
+      );
     }
     if (!/[a-z]/.test(value)) {
-      return Promise.reject(new Error('Password must contain at least one lowercase letter'));
+      return Promise.reject(
+        new Error("Password must contain at least one lowercase letter"),
+      );
     }
     if (!/[0-9]/.test(value)) {
-      return Promise.reject(new Error('Password must contain at least one number'));
+      return Promise.reject(
+        new Error("Password must contain at least one number"),
+      );
     }
     return Promise.resolve();
   };
 
   const validateConfirmPassword = (_: any, value: string) => {
     if (!value) {
-      return Promise.reject(new Error('Please confirm your new password'));
+      return Promise.reject(new Error("Please confirm your new password"));
     }
-    if (value !== form.getFieldValue('newPassword')) {
-      return Promise.reject(new Error('Passwords do not match'));
+    if (value !== form.getFieldValue("newPassword")) {
+      return Promise.reject(new Error("Passwords do not match"));
     }
     return Promise.resolve();
   };
@@ -98,20 +115,24 @@ export default function ProfilePage() {
   return (
     <div>
       <Title level={2}>Profile & Settings</Title>
-      <Text type="secondary" style={{ display: 'block', marginBottom: 24 }}>
+      <Text type="secondary" style={{ display: "block", marginBottom: 24 }}>
         Manage your account settings and password
       </Text>
 
-      <Space direction="vertical" size="large" style={{ width: '100%', maxWidth: 800 }}>
+      <Space
+        direction="vertical"
+        size="large"
+        style={{ width: "100%", maxWidth: 800 }}
+      >
         {/* Account Information Card */}
         <Card title="Account Information" bordered={false}>
-          <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+          <Space direction="vertical" size="middle" style={{ width: "100%" }}>
             <div>
               <Text strong>
                 <MailOutlined /> Email:
               </Text>
               <br />
-              <Text>{user?.email || 'Loading...'}</Text>
+              <Text>{user?.email || "Loading..."}</Text>
             </div>
             <div>
               <Text strong>
@@ -119,7 +140,9 @@ export default function ProfilePage() {
               </Text>
               <br />
               <Text>
-                {user?.role === 'super_admin' ? 'ðŸ‘‘ Super Admin' : 'ðŸ‘¤ Admin'}
+                {user?.role === "super_admin"
+                  ? "ðŸ‘‘ Super Admin"
+                  : "ðŸ‘¤ Admin"}
               </Text>
             </div>
           </Space>
@@ -130,7 +153,7 @@ export default function ProfilePage() {
           <Alert
             message="Password Requirements"
             description={
-              <ul style={{ margin: '8px 0', paddingLeft: 20 }}>
+              <ul style={{ margin: "8px 0", paddingLeft: 20 }}>
                 <li>At least 8 characters long</li>
                 <li>Contains uppercase letter (A-Z)</li>
                 <li>Contains lowercase letter (a-z)</li>
@@ -153,7 +176,10 @@ export default function ProfilePage() {
               label="Current Password"
               name="currentPassword"
               rules={[
-                { required: true, message: 'Please enter your current password' },
+                {
+                  required: true,
+                  message: "Please enter your current password",
+                },
               ]}
             >
               <Input.Password
@@ -178,7 +204,7 @@ export default function ProfilePage() {
             <Form.Item
               label="Confirm New Password"
               name="confirmPassword"
-              dependencies={['newPassword']}
+              dependencies={["newPassword"]}
               rules={[{ validator: validateConfirmPassword }]}
             >
               <Input.Password
