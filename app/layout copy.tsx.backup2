@@ -1,11 +1,15 @@
 // app/layout.tsx
+// Root layout with Ant Design registry
+// FIXED: Force dynamic rendering to prevent pre-render errors
+
 import React from "react";
 import { AntdRegistry } from "@ant-design/nextjs-registry";
 import { ConfigProvider } from "antd";
 import "./globals.css";
 
-// Force dynamic rendering - NO static generation
+// CRITICAL: Force all pages to be dynamic (no static pre-rendering)
 export const dynamic = "force-dynamic";
+export const dynamicParams = true;
 export const revalidate = 0;
 
 export const metadata = {
