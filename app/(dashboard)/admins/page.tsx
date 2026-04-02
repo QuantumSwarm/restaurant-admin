@@ -5,7 +5,6 @@
 
 // ✅ FIX #1: Add this export to prevent static generation errors
 export const dynamic = "force-dynamic";
-export const revalidate = 0;
 
 import React, { useState, useEffect, useCallback } from "react";
 import {
@@ -231,7 +230,9 @@ export default function AdminsPage() {
             </Tag>
             <span style={{ fontSize: "12px" }}>
               Credits: {record.subscription.creditsUsed}/
-              {record.subscription.plan.creditsLimit}
+              {record.subscription.plan
+                ? record.subscription.plan.creditsLimit
+                : "N/A"}
             </span>
           </Space>
         );

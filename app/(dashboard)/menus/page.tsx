@@ -3,7 +3,6 @@
 // app/(dashboard)/menus/page.tsx
 // UPDATED: Menus page with Store Selector and store-specific data
 export const dynamic = "force-dynamic";
-export const revalidate = 0;
 
 import React, { useState, useEffect } from "react";
 import {

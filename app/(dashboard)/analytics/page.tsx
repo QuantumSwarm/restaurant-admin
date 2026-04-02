@@ -3,7 +3,6 @@
 // app/(dashboard)/analytics/page.tsx
 // Complete analytics dashboard with PDF export
 export const dynamic = "force-dynamic";
-export const revalidate = 0;
 
 import React, { useState, useEffect, useRef } from "react";
 import {

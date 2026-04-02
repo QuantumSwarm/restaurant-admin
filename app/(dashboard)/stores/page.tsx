@@ -1,7 +1,6 @@
 ﻿"use client";
 
 export const dynamic = "force-dynamic";
-export const revalidate = 0;
 
 // app/(dashboard)/stores/page.tsx
 // Stores list page with table

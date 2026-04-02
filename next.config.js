@@ -10,7 +10,7 @@ const nextConfig = {
 
   // Disable static generation completely
   experimental: {
-    appDir: true,
+    //  appDir: true,
   },
 
   webpack: (config, { isServer }) => {

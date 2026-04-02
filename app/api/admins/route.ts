@@ -4,6 +4,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 import { prisma } from "@/lib/db/prisma";
 import { verifyToken } from "@/lib/auth/jwt";
 import bcrypt from "bcryptjs";

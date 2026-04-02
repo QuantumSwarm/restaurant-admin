@@ -3,7 +3,6 @@
 // app/(dashboard)/dashboard/page.tsx
 // Dashboard home page with stats overview
 export const dynamic = "force-dynamic";
-export const revalidate = 0;
 
 import React from "react";
 
