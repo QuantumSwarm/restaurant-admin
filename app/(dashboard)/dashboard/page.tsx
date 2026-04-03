@@ -74,7 +74,7 @@ export default function DashboardPage() {
 
       {/* Welcome Card */}
       <Card style={{ marginTop: 24 }} title="ðŸŽ‰ Welcome to Restaurant Admin">
-        <p>Your admin panel is now set up! Here's what you can do:</p>
+        <p>Your admin panel is now set up! Here is what you can do:</p>
         <ul>
           <li>&#10004;&#65039; Manage your restaurant stores and locations</li>
           <li>&#10004;&#65039; Create and edit menu items</li>
