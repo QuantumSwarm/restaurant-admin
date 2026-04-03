@@ -76,11 +76,11 @@ export default function DashboardPage() {
       <Card style={{ marginTop: 24 }} title="ðŸŽ‰ Welcome to Restaurant Admin">
         <p>Your admin panel is now set up! Here's what you can do:</p>
         <ul>
-          <li>âœ… Manage your restaurant stores and locations</li>
-          <li>âœ… Create and edit menu items</li>
-          <li>âœ… View analytics and reports</li>
-          <li>âœ… Send bulk SMS campaigns</li>
-          <li>âœ… Access AI conversation recordings</li>
+          <li>&#10004;&#65039; Manage your restaurant stores and locations</li>
+          <li>&#10004;&#65039; Create and edit menu items</li>
+          <li>&#10004;&#65039; View analytics and reports</li>
+          <li>&#10004;&#65039; Send bulk SMS campaigns</li>
+          <li>&#10004;&#65039; Access AI conversation recordings</li>
         </ul>
         <p style={{ marginTop: 16, color: "#8c8c8c" }}>
           <strong>Next steps:</strong> Start by adding your first store in the
